@@ -1,6 +1,7 @@
 #include <QtCore>
 #include "Paperparser.h"
 #include "Log.h"
+#include "Question.h"
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -11,11 +12,15 @@ static wchar_t chNum[] = {
 static wchar_t chSep[] = {
     L"、．."
 };
+struct QuesTypeMap {
+    const wchar_t *type_str;
+    enum Question::Type type;
+};
 
-static const wchar_t* quesType[] = {
-    L"单项选择题",
-    L"多项选择题",
-    L"判断题",
+static const QuesTypeMap quesType[] = {
+    { L"单项选择题", Question::SINGLE_CHOICE_QUESTION },
+    { L"多项选择题", Question::MULTI_CHOICE_QUESTION },
+    { L"判断题",    Question::JUDGE_QUESTION },
 };
 
 static wchar_t lquot = L'（';
@@ -27,10 +32,12 @@ PaperParser::PaperParser()
 {
 }
 
-bool PaperParser::parseQuesType(const QString &paper)
+enum Question::Type PaperParser::parseQuesType(const QString &paper, bool &found)
 {
     int i=0;
     int ppidx = 0;
+    enum Question::Type type = Question::UNKNOWN_TYPE;
+    found = false;
 #if 0
     for(wchar_t wc = chNum[i]; i<ARRAY_SIZE(chNum); ++i) {
         if(paper.at(ppidx) == QChar(wc)) {
@@ -42,11 +49,13 @@ bool PaperParser::parseQuesType(const QString &paper)
     int sepFound = QString::fromWCharArray(chSep).indexOf(paper.at(1));
     printf("idx %d sep %d\n", idxFound, sepFound);
     if(idxFound == -1 || sepFound == -1) {
-        return false;
+        found = false;
+        return type;
     }
 
     //if()
-    return true;
+    found = true;
+    return type;
 }
 
 QString* PaperParser::parseQuesMain(const QString &line)
@@ -183,6 +192,7 @@ ExamPaper *PaperParser::parse(QString path)
     int curIdx = 0;
     int eolIdx;
     int lineNo = 0;
+    enum Question::Type quesType;
     while(curIdx < all.length()) {
         eolIdx = all.indexOf('\n', curIdx);
         lineNo++;
@@ -196,9 +206,11 @@ ExamPaper *PaperParser::parse(QString path)
         }
         curIdx = eolIdx + 1;
         bool quesTypeFound = false;
-        quesTypeFound = parseQuesType(line.toString());
-        if(quesTypeFound)
+        enum Question::Type tmpQuesType = parseQuesType(line.toString(), quesTypeFound);
+        if(quesTypeFound) {
+            quesType = tmpQuesType;
             continue;
+        }
         QString *qmain = parseQuesMain(line.toString());
         if(qmain == NULL)
             continue;

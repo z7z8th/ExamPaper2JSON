@@ -1,13 +1,14 @@
 #ifndef PAPERPARSER_H
 #define PAPERPARSER_H
 #include <QtCore>
+#include "Question.h"
 #include "Exampaper.h"
 
 class PaperParser
 {
 public:
     PaperParser();
-    bool parseQuesType(const QString &paper);
+    enum Question::Type  parseQuesType(const QString &paper, bool &found);
     QString* parseQuesMain(const QString & paper);
     QString* parseAnswer(const QString &line);
     bool parseQuesChoice(const QString &line, QList<QString *> &choices);
