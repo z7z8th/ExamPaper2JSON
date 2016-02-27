@@ -10,6 +10,7 @@ int main(int argc, char *argv[]) {
     }
 
     PaperParser *parser = new PaperParser;
-    parser->parse(argv[1]);
-
+    ExamPaper *paper = parser->parse(argv[1]);
+    QString *paperStr = paper->listAllQuestions();
+    printf("%s\n", paperStr->toUtf8().constData());
 }

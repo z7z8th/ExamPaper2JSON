@@ -8,10 +8,10 @@ class PaperParser
 {
 public:
     PaperParser();
-    enum Question::Type  parseQuesType(const QString &paper, bool &found);
-    QString* parseQuesMain(const QString & paper);
-    QString* parseAnswer(const QString &line);
-    bool parseQuesChoice(const QString &line, QList<QString *> &choices);
+    enum Question::Type  parseQuesType(const QString &line);
+    QString* parseQuesMain(const QString & line);
+    QString* parseAnswer(const QString & line);
+    bool parseQuesChoice(const QString & line, QList<QString *> & choices);
     QString* parseJudgeQMain(const QString & paper);
     ExamPaper * parse(QString path);
 protected:

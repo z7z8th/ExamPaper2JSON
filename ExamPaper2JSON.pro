@@ -1,6 +1,8 @@
 QT += \
     core
 
+CONFIG += console
+
 SOURCES += \
     src/main.cpp \
     src/Question.cpp \

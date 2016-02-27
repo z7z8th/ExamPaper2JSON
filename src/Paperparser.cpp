@@ -3,41 +3,18 @@
 #include "Log.h"
 #include "Question.h"
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
-
-static wchar_t chNum[] = {
-    L"一二三四五六七八九十零〇"
-};
-
-static wchar_t chSep[] = {
-    L"、．."
-};
-struct QuesTypeMap {
-    const wchar_t *type_str;
-    enum Question::Type type;
-};
-
-static const QuesTypeMap quesType[] = {
-    { L"单项选择题", Question::SINGLE_CHOICE_QUESTION },
-    { L"多项选择题", Question::MULTI_CHOICE_QUESTION },
-    { L"判断题",    Question::JUDGE_QUESTION },
-};
-
-static wchar_t lquot = L'（';
-static wchar_t rquot = L'）';
-
 const QString PaperParser::TAG("PaperParser");
 
 PaperParser::PaperParser()
 {
 }
 
-enum Question::Type PaperParser::parseQuesType(const QString &paper, bool &found)
+enum Question::Type PaperParser::parseQuesType(const QString &line)
 {
     int i=0;
     int ppidx = 0;
     enum Question::Type type = Question::UNKNOWN_TYPE;
-    found = false;
+    bool found = false;
 #if 0
     for(wchar_t wc = chNum[i]; i<ARRAY_SIZE(chNum); ++i) {
         if(paper.at(ppidx) == QChar(wc)) {
@@ -45,12 +22,19 @@ enum Question::Type PaperParser::parseQuesType(const QString &paper, bool &found
         }
     }
 #endif
-    int idxFound = QString::fromWCharArray(chNum).indexOf(paper.at(0));
-    int sepFound = QString::fromWCharArray(chSep).indexOf(paper.at(1));
+    int idxFound = QString::fromWCharArray(chNum).indexOf(line.at(0));
+    int sepFound = QString::fromWCharArray(chSep).indexOf(line.at(1));
     printf("idx %d sep %d\n", idxFound, sepFound);
     if(idxFound == -1 || sepFound == -1) {
         found = false;
         return type;
+    }
+    for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); i++) {
+        QString str = QString::fromWCharArray(quesTypeMap[i].type_str);
+        if(line.mid(sepFound, str.length()).compare(str)) {
+            type = quesTypeMap[i].type;
+            break;
+        }
     }
 
     //if()
@@ -69,7 +53,7 @@ QString* PaperParser::parseQuesMain(const QString &line)
     while(L'0' <= line.at(id) && line.at(id) <= L'9')
         id++;
     printf("QuesMain sep idx %d\n", id);
-    qidx = line.midRef(0, id).toUInt(&ok, 10);
+    qidx = line.mid(0, id).toUInt(&ok, 10);
     if(not ok) {
         printf("QuesMain toUInt not ok\n");
         return mainq;
@@ -80,7 +64,7 @@ QString* PaperParser::parseQuesMain(const QString &line)
     if(sepFound == -1)
         return mainq;
     id++;
-    mainq = new QString(line.midRef(id).toString());
+    mainq = new QString(line.mid(id));
 
     printf("QuesMain qidx %d qmain %s\n", qidx, mainq->toUtf8().constData());
     return mainq;
@@ -114,7 +98,7 @@ QString* PaperParser::parseAnswer(const QString &line)
             printf("incomplete quote paire ()");
             return ans;
         }
-        ansPart = line.midRef(lqIdx+1, rqIdx-lqIdx-1).trimmed().toString();
+        ansPart = line.mid(lqIdx+1, rqIdx-lqIdx-1).trimmed();
         printf("ansPart:(%d~%d) %s\n", lqIdx, rqIdx, ansPart.toUtf8().constData());
 
         if(!isAnswerIdx(ansPart)) {
@@ -156,7 +140,7 @@ bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices
                 nextIdx = line.length();
             }
 
-            chMain = new QString(line.midRef(curIdx+2, nextIdx-curIdx-2).toString());
+            chMain = new QString(line.mid(curIdx+2, nextIdx-curIdx-2));
             choices.append(chMain);
             chCnt++;
             curIdx = nextIdx;
@@ -184,11 +168,12 @@ ExamPaper *PaperParser::parse(QString path)
     printf("0x%0x 0x%x\n", baall.at(0), baall.at(1));
     QString all(baall);
     //Log::i(TAG, QString("unichar ")+all.at(0)+all.at(1)+all.at(2));
-    printf("sizeof wchar_t %lu L\'江\' %lu\n", sizeof(wchar_t), sizeof(L'江'));
+    printf("sizeof wchar_t %d L\'江\' %d\n", sizeof(wchar_t), sizeof(L'江'));
     Log::i(TAG, all.left(3));
     if(all.at(0) == QChar(L'江')) {
         printf("equal\n");
     }
+    ExamPaper *paper = new ExamPaper();
     int curIdx = 0;
     int eolIdx;
     int lineNo = 0;
@@ -196,7 +181,7 @@ ExamPaper *PaperParser::parse(QString path)
     while(curIdx < all.length()) {
         eolIdx = all.indexOf('\n', curIdx);
         lineNo++;
-        QStringRef line = all.midRef(curIdx, eolIdx-curIdx);
+        QString line = all.mid(curIdx, eolIdx-curIdx);
         if(eolIdx == -1)
             break;
         printf(">>line %d: (%d ~ %d) %s\n", lineNo, curIdx, eolIdx, line.toUtf8().constData());
@@ -206,22 +191,22 @@ ExamPaper *PaperParser::parse(QString path)
         }
         curIdx = eolIdx + 1;
         bool quesTypeFound = false;
-        enum Question::Type tmpQuesType = parseQuesType(line.toString(), quesTypeFound);
-        if(quesTypeFound) {
+        enum Question::Type tmpQuesType = parseQuesType(line);
+        if(quesType != Question::UNKNOWN_TYPE) {
             quesType = tmpQuesType;
             continue;
         }
-        QString *qmain = parseQuesMain(line.toString());
+        QString *qmain = parseQuesMain(line);
         if(qmain == NULL)
             continue;
-        QString *anwswers = parseAnswer(*qmain);
+        QString *answers = parseAnswer(*qmain);
         QList <QString *> choices;
         bool allChoiceCollected = false;
 
         while(!allChoiceCollected && curIdx < all.length()) {
             eolIdx = all.indexOf('\n', curIdx);
             lineNo++;
-            QStringRef line = all.midRef(curIdx, eolIdx-curIdx);
+            QString line = all.mid(curIdx, eolIdx-curIdx);
             if(eolIdx == -1)
                 break;
             printf(">>chline %d: (%d ~ %d) %s\n", lineNo, curIdx, eolIdx, line.toUtf8().constData());
@@ -231,7 +216,7 @@ ExamPaper *PaperParser::parse(QString path)
             }
             QString *choice;
             int chIdx = -1;
-            allChoiceCollected = parseQuesChoice(line.toString(), choices);
+            allChoiceCollected = parseQuesChoice(line, choices);
             if(!allChoiceCollected)
                 curIdx = eolIdx + 1;
         }
@@ -240,7 +225,9 @@ ExamPaper *PaperParser::parse(QString path)
             QString * ch = choices.at(i);
             printf("[%d] %s\n", i, ch->toUtf8().constData());
         }
-
+        Question *q = new Question(quesType, qmain, answers, choices);
+        paper->addQuestion(q);
         printf("====\n");
     }
+    return paper;
 }
