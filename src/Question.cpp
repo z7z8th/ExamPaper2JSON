@@ -5,21 +5,64 @@ Question::Question()
 {
 }
 
+Question::~Question()
+{
+    reset();
+}
+
+void Question::reset()
+{
+    type = UNKNOWN_TYPE;
+    if(question) { delete question; question = NULL; }
+    if(answer) { delete answer; question = NULL; }
+    for(int i=0; i<choices.size(); ++i){
+        QString *ch =  choices.takeFirst();
+        delete ch;
+    }
+}
+
 Question::Question(Type t, QString *q, QString *a, QList<QString *> &cs)
 {
     type = t;
-    main = q;
+    question = q;
     answer = a;
     choices.swap(cs);
+}
+
+QJsonObject *Question::toJsonObj() const
+{
+    QJsonObject *json = new QJsonObject;
+    //QJsonValue *val = new QJsonValue(*question);
+    (*json)["type"] = type;
+    (*json)["question"] = *question;
+    (*json)["answer"] = *answer;
+    QJsonArray chArray;
+    for(int i=0; i<choices.size(); ++i){
+        chArray.append(*choices.at(i));
+    }
+    (*json)["choices"] = chArray;
+}
+
+void Question::fromJsonObj(QJsonObject *json)
+{
+    reset();
+    type = static_cast<Type>((*json)["type"].toInt());
+    question = new QString((*json)["question"].toString());
+    answer = new QString((*json)["answer"].toString());
+    QJsonArray chArray = (*json)["choices"].toArray();
+    for(int i=0; i<chArray.size(); i++) {
+        choices.append(new QString(chArray.at(i).toString()));
+    }
 }
 
 QString *Question::toString()
 {
     QString *str = new QString;
-    str->append(answer).append(" ").append(main).append("\n");
+    str->append(answer).append(" ").append(question).append("\n");
     for(int i=0; i<choices.size(); i++){
         str->append('A'+i).append(". ").append(choices.at(i)).append("\n");
     }
+    str->append("\n");
     return str;
 }
 
@@ -60,6 +103,12 @@ const wchar_t chNum[] = {
 const wchar_t chSep[] = {
     L"、．."
 };
+const char answerIdxAsciiPattern[] = "^[A-H]+$";
+const char answerIdxFWPattern[] = "^[Ａ-Ｈ]+$";
 
-const wchar_t lquot = L'（';
-const wchar_t rquot = L'）';
+const wchar_t lquotFW = L'（';
+const wchar_t rquotFW = L'）';
+const wchar_t lquotAscii = L'(';
+const wchar_t rquotAscii = L')';
+const wchar_t spaceFW = L'　'; // U+3000	　'	' utf8: e3 80 80	IDEOGRAPHIC SPACE
+const char spaceFWPattern[] = "^　*|　*$";

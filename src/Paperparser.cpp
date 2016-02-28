@@ -9,6 +9,13 @@ PaperParser::PaperParser()
 {
 }
 
+QString & trimeFWSpace(QString & str) {
+    QRegularExpression re;
+    re.setPattern(spaceFWPattern);
+    str.remove(re);
+    return str;
+}
+
 enum Question::Type PaperParser::parseQuesType(const QString &line)
 {
     int i=0;
@@ -31,13 +38,16 @@ enum Question::Type PaperParser::parseQuesType(const QString &line)
     }
     for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); i++) {
         QString str = QString::fromWCharArray(quesTypeMap[i].type_str);
-        if(line.mid(sepFound, str.length()).compare(str)) {
+        QString str2prs = line.mid(2, str.length());
+        printf("'%s' <-> '%s'\n", str.toUtf8().constData(), str2prs.toUtf8().constData());
+        if(str.compare(str2prs) == 0) {
             type = quesTypeMap[i].type;
             break;
         }
     }
 
     //if()
+    printf("*** found question type %d\n", type);
     found = true;
     return type;
 }
@@ -72,9 +82,13 @@ QString* PaperParser::parseQuesMain(const QString &line)
 
 bool isAnswerIdx(const QString &ansPart) {
     QRegularExpression re;
-    re.setPattern("^[A-H]+$");
+    re.setPattern(answerIdxAsciiPattern);
     QRegularExpressionMatch match = re.match(ansPart);
-    return match.hasMatch();
+    bool asciiHasMatch = match.hasMatch();
+    re.setPattern(answerIdxFWPattern);
+    match = re.match(ansPart);
+    bool fwHasMatch = match.hasMatch();
+    return (asciiHasMatch || fwHasMatch);
 }
 
 bool isChSep(const QString &str) {
@@ -86,11 +100,11 @@ bool isChSep(const QString &str) {
 
 }
 
-QString* PaperParser::parseAnswer(const QString &line)
+QString* PaperParser::findAnswerByQuot(const QString &line, wchar_t lquot, wchar_t rquot)
 {
     int lqIdx = 0;
     int rqIdx = 0;
-    QString *ans = new QString;
+    QString *ans = NULL;
     QString ansPart;
     while((lqIdx = line.indexOf(lquot, lqIdx)) != -1) {
         rqIdx = line.indexOf(rquot, lqIdx+1);
@@ -105,10 +119,22 @@ QString* PaperParser::parseAnswer(const QString &line)
             lqIdx = rqIdx + 1;
             continue;
         }
-        ans->append(ansPart);
+        ans = new QString(ansPart);
+        //ans->append(ansPart);
         lqIdx = rqIdx + 1;
+        break;
     }
-    printf(">> Answer: %s\n", ans->toUtf8().constData());
+    printf(">> Answer: %s\n", ans ? ans->toUtf8().constData():"Not Found!");
+
+    return ans;
+}
+
+QString* PaperParser::parseAnswer(const QString &line)
+{
+    QString *ans;
+    ans = findAnswerByQuot(line, lquotFW, rquotFW);
+    if(!ans)
+        ans = findAnswerByQuot(line, lquotAscii, rquotAscii);
 
     return ans;
 }
@@ -134,13 +160,22 @@ bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices
     QString *chMain = NULL;
     while(curIdx < line.length()) {
         if(isAnswerIdx(line.at(curIdx)) && isChSep(line.at(curIdx+1))) {
-            QChar nextCh = line.at(curIdx).unicode() + 1;
+            QChar curCh = line.at(curIdx);
+            QChar nextCh = curCh.unicode() + 1;
             nextIdx = findNextChIdx(line, nextCh, curIdx+2);
             if(nextIdx == -1) {
-                nextIdx = line.length();
+                wchar_t FWAsciiDiff = L'Ａ'-L'A';  //ＡＢＣＤＥＦＧＨ
+                if(nextCh < L'Ａ')
+                    nextCh = nextCh.unicode() + FWAsciiDiff;
+                else if(nextCh >= L'Ａ')
+                    nextCh = nextCh.unicode() - FWAsciiDiff;
+                nextIdx = findNextChIdx(line, nextCh, curIdx+2);
+                if(nextIdx == -1) {
+                    nextIdx = line.length();
+                }
             }
 
-            chMain = new QString(line.mid(curIdx+2, nextIdx-curIdx-2));
+            chMain = new QString(line.mid(curIdx+2, nextIdx-curIdx-2).trimmed());
             choices.append(chMain);
             chCnt++;
             curIdx = nextIdx;
@@ -192,7 +227,7 @@ ExamPaper *PaperParser::parse(QString path)
         curIdx = eolIdx + 1;
         bool quesTypeFound = false;
         enum Question::Type tmpQuesType = parseQuesType(line);
-        if(quesType != Question::UNKNOWN_TYPE) {
+        if(tmpQuesType != Question::UNKNOWN_TYPE) {
             quesType = tmpQuesType;
             continue;
         }
