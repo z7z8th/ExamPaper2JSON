@@ -9,6 +9,28 @@ PaperParser::PaperParser()
 {
 }
 
+QString & FWAnswer2Ascii(QString & ans) {
+    wchar_t FWAsciiDiff = L'Ａ'-L'A';  //ＡＢＣＤＥＦＧＨ
+    for(int i=0; i<ans.size(); i++){
+        if(L'Ａ' < ans.at(i) && ans.at(i) < L'Ｈ') {
+            ans[i] = ans[i].unicode()-FWAsciiDiff;
+        }
+    }
+    return ans;
+}
+
+int leadingSpaceCnt(const QString &str) {
+    int spCnt = 0;
+    for(int i=0; i<str.length(); i++){
+        QChar ch = str.at(i);
+        if( ch == L' ' || ch == L'　')
+            spCnt++;
+        else
+            break;
+    }
+    return spCnt;
+}
+
 QString & trimeFWSpace(QString & str) {
     QRegularExpression re;
     re.setPattern(spaceFWPattern);
@@ -19,7 +41,7 @@ QString & trimeFWSpace(QString & str) {
 enum Question::Type PaperParser::parseQuesType(const QString &line)
 {
     int i=0;
-    int ppidx = 0;
+    int prsIdx = 0;
     enum Question::Type type = Question::UNKNOWN_TYPE;
     bool found = false;
 #if 0
@@ -29,16 +51,21 @@ enum Question::Type PaperParser::parseQuesType(const QString &line)
         }
     }
 #endif
-    int idxFound = QString::fromWCharArray(chNum).indexOf(line.at(0));
-    int sepFound = QString::fromWCharArray(chSep).indexOf(line.at(1));
+    prsIdx = leadingSpaceCnt(line);
+    int idxFound = QString::fromWCharArray(chNum).indexOf(line.at(prsIdx));
+    prsIdx++;
+    prsIdx += leadingSpaceCnt(line.mid(prsIdx));
+    int sepFound = QString::fromWCharArray(chSep).indexOf(line.at(prsIdx));
     printf("idx %d sep %d\n", idxFound, sepFound);
     if(idxFound == -1 || sepFound == -1) {
         found = false;
         return type;
     }
+    prsIdx++;
+    prsIdx += leadingSpaceCnt(line.mid(prsIdx));
     for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); i++) {
         QString str = QString::fromWCharArray(quesTypeMap[i].type_str);
-        QString str2prs = line.mid(2, str.length());
+        QString str2prs = line.mid(prsIdx, str.length());
         printf("'%s' <-> '%s'\n", str.toUtf8().constData(), str2prs.toUtf8().constData());
         if(str.compare(str2prs) == 0) {
             type = quesTypeMap[i].type;
@@ -124,6 +151,8 @@ QString* PaperParser::findAnswerByQuot(const QString &line, wchar_t lquot, wchar
         lqIdx = rqIdx + 1;
         break;
     }
+    if(ans)
+        FWAnswer2Ascii(*ans);
     printf(">> Answer: %s\n", ans ? ans->toUtf8().constData():"Not Found!");
 
     return ans;
@@ -135,6 +164,7 @@ QString* PaperParser::parseAnswer(const QString &line)
     ans = findAnswerByQuot(line, lquotFW, rquotFW);
     if(!ans)
         ans = findAnswerByQuot(line, lquotAscii, rquotAscii);
+
 
     return ans;
 }
