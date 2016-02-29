@@ -3,14 +3,16 @@
 
 Question::Question()
 {
+    question = NULL;
+    answer = NULL;
 }
 
 Question::~Question()
 {
-    reset();
+    clear();
 }
 
-void Question::reset()
+void Question::clear()
 {
     type = UNKNOWN_TYPE;
     if(question) { delete question; question = NULL; }
@@ -45,15 +47,17 @@ QJsonObject *Question::toJsonObj() const
     return json;
 }
 
-void Question::fromJsonObj(QJsonObject *json)
+void Question::fromJsonObj(QJsonObject& json)
 {
-    reset();
-    type = static_cast<Type>((*json)["type"].toInt());
-    question = new QString((*json)["question"].toString());
-    answer = new QString((*json)["answer"].toString());
-    QJsonArray chArray = (*json)["choices"].toArray();
+    clear();
+
+    type = static_cast<Type>(json["type"].toInt());
+    question = new QString(json["question"].toString());
+    answer = new QString(json["answer"].toString());
+    QJsonArray chArray = json["choices"].toArray();
     for(int i=0; i<chArray.size(); i++) {
-        choices.append(new QString(chArray.at(i).toString()));
+        QString *ch = new QString(chArray.at(i).toString());
+        choices.append(ch);
     }
 }
 
@@ -78,33 +82,26 @@ void Question::choose(QString *chs)
     choosed = *chs;
 }
 
-QString *Question::getTypeStr(Type t, bool en)
+const QString& Question::getTypeStr(Type t, bool en)
 {
-    QString *typeStr = new QString;
-#if 1
     for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); ++i) {
         if(t == quesTypeMap[i].type) {
-            typeStr->append(en ? quesTypeMap[i].type_str_en : quesTypeMap[i].type_str_cn);
+            return en ? quesTypeMap[i].type_str_en : quesTypeMap[i].type_str_cn;
             break;
         }
     }
-#endif
-    printf("%s: %s\n", __func__, typeStr->toUtf8().constData());
-    return typeStr;
+    return NullStr;
 }
 
-QString *Question::getTypeDesc(Type t)
+const QString& Question::getTypeDesc(Type t)
 {
-    QString *typeDesc = new QString;
-#if 1
     for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); ++i) {
         if(t == quesTypeMap[i].type) {
-            typeDesc->append(quesTypeMap[i].desc);
+            return quesTypeMap[i].desc;
             break;
         }
     }
-#endif
-    return typeDesc;
+    return NullStr;
 }
 
 QuesTypeMap quesTypeMap[] = {
@@ -129,3 +126,5 @@ const wchar_t lquotAscii = L'(';
 const wchar_t rquotAscii = L')';
 const wchar_t spaceFW = L'　'; // U+3000	　'	' utf8: e3 80 80	IDEOGRAPHIC SPACE
 const char spaceFWPattern[] = "^　*|　*$";
+
+const QString NullStr;

@@ -14,11 +14,11 @@ public:
     };
 public:
     Question();
-    ~Question();
-    void reset();
+    virtual ~Question();
+    void clear();
     Question(Type t, QString *q, QString *a, QList<QString *> &cs);
     QJsonObject *toJsonObj() const;
-    void fromJsonObj(QJsonObject* json);
+    void fromJsonObj(QJsonObject& json);
     QString* toString();
 #if 0
     void setMain(QString *main);
@@ -31,8 +31,8 @@ public:
     virtual void choose(QString * chs);
 
 public:
-    static QString *getTypeStr(Type t, bool en = false);
-    static QString *getTypeDesc(Type t);
+    static const QString& getTypeStr(Type t, bool en = false);
+    static const QString& getTypeDesc(Type t);
 protected:
     Type type;
     QString *question;
@@ -42,10 +42,10 @@ protected:
 };
 
 struct QuesTypeMap {
-    const char *type_str_cn;
+    const QString type_str_cn;
     const Question::Type type;
-    const char *type_str_en;
-    QString *desc;
+    const QString type_str_en;
+    QString desc;
 };
 
 extern struct QuesTypeMap quesTypeMap[3];
@@ -62,6 +62,7 @@ extern const wchar_t spaceFW;
 
 extern const char spaceFWPattern[];
 
+extern const QString NullStr;
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 

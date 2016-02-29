@@ -2,7 +2,7 @@
 #define PAPERPARSER_H
 #include <QtCore>
 #include "Question.h"
-#include "Exampaper.h"
+#include "ExamPaper.h"
 
 class PaperParser
 {

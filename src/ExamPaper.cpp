@@ -1,7 +1,34 @@
-#include "Exampaper.h"
+#include "ExamPaper.h"
 
 ExamPaper::ExamPaper()
 {
+}
+
+ExamPaper::~ExamPaper()
+{
+    clear();
+}
+
+void ExamPaper::clearByType(Question::Type type)
+{
+    QList<Question *> ql(qs.value(type));
+
+    printf("clearByType question list size %d\n", ql.size());
+    for(int i=0; i<ql.size(); i++){
+        delete ql.at(i);
+    }
+    ql.clear();
+}
+
+void ExamPaper::clear()
+{
+    QList<Question::Type> tl = qs.keys();
+    printf("clear questions keys cnt %d\n", tl.size());
+    for(int i=0; i<tl.size(); i++) {
+        printf("question for type %d\n", tl.at(i));
+        clearByType(tl.at(i));
+    }
+    qs.clear();
 }
 
 void ExamPaper::addQuestion(Question *q)
@@ -21,28 +48,28 @@ QJsonObject *ExamPaper::toJsonObj() const
     QJsonObject *json = new QJsonObject;
     QList<Question::Type> tl = qs.keys();
     printf("questions keys cnt %d\n", tl.size());
+    QJsonArray qsTypeArray;
     for(int i=0; i<tl.size(); i++) {
         Question::Type type = tl.at(i);
+        qsTypeArray.append(type);
         printf("question for type %d\n", type);
         QJsonObject *qsByType = toJsonObjByType(type);
-        QString *typeStr = Question::getTypeStr(type, true);
-        (*json)[*typeStr] = *qsByType;
-        delete typeStr;
+        QString typeStr = Question::getTypeStr(type, true);
+        (*json)[typeStr] = *qsByType;
         delete qsByType;
     }
+    (*json)["QuestionTypes"] = qsTypeArray;
     return json;
 }
 
 QJsonObject *ExamPaper::toJsonObjByType(Question::Type type) const
 {
     QJsonObject *json = new QJsonObject;
-    QString *str;
+    QString str;
     str = Question::getTypeDesc(type);
-    (*json)["desc"] = *str;
-    delete str;
+    (*json)["desc"] = str;
     str = Question::getTypeStr(type);
-    (*json)["type_str"] = *str;
-    delete str;
+    (*json)["type_str"] = str;
     QJsonArray qsArray;
     QList<Question *> ql(qs.value(type));
 
@@ -58,6 +85,31 @@ QJsonObject *ExamPaper::toJsonObjByType(Question::Type type) const
     return json;
 }
 
+void ExamPaper::fromJsonObj(const QJsonObject& json)
+{
+    QJsonArray qsTypesArray;
+    qsTypesArray = json["QuestionTypes"].toArray();
+    for(int i=0; i<qsTypesArray.size(); i++){
+        Question::Type type = static_cast<Question::Type> (qsTypesArray[i].toInt());
+        QString str = Question::getTypeStr(type, true);
+        QJsonObject qsByType = json[str].toObject();
+        fromJsonObjByType(qsByType, type);
+    }
+}
+
+void ExamPaper::fromJsonObjByType(const QJsonObject &json, Question::Type type)
+{
+    (void)type;
+    QJsonArray qsArray;
+    qsArray = json["questions"].toArray();
+    for(int i=0; i<qsArray.size(); i++) {
+        QJsonObject qobj = qsArray[i].toObject();
+        Question *q = new Question;
+        q->fromJsonObj(qobj);
+        addQuestion(q);
+    }
+}
+
 bool ExamPaper::save2JsonFile(QString &path, bool bin)
 {
     QFile file(path);
@@ -68,6 +120,24 @@ bool ExamPaper::save2JsonFile(QString &path, bool bin)
     QJsonObject *paperObj = this->toJsonObj();
     QJsonDocument doc(*paperObj);
     file.write(bin?doc.toBinaryData():doc.toJson());
+    delete paperObj;
+    file.close();
+    return true;
+}
+
+bool ExamPaper::loadFromJsonFile(const QString &path, bool bin)
+{
+    QFile file(path);
+    if(!file.open(QIODevice::ReadOnly)) {
+        printf("Could not open json file to load paper!\n");
+        return false;
+    }
+    QByteArray data = file.readAll();
+
+    QJsonDocument doc(bin
+                      ? QJsonDocument::fromBinaryData(data)
+                      : QJsonDocument::fromJson(data));
+    fromJsonObj(doc.object());
     file.close();
     return true;
 }

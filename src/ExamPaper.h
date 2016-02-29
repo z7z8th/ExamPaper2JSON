@@ -8,11 +8,16 @@ class ExamPaper
 {
 public:
     ExamPaper();
+    virtual ~ExamPaper();
+    void clearByType(Question::Type type);
+    void clear();
     void addQuestion(Question *q);
     QJsonObject* toJsonObj() const;
     QJsonObject* toJsonObjByType(Question::Type type) const;
-    void fromJson(QJsonObject* json);
+    void fromJsonObj(const QJsonObject& json);
+    void fromJsonObjByType(const QJsonObject& json, Question::Type type);
     bool save2JsonFile(QString &path, bool bin = false);
+    bool loadFromJsonFile(const QString &path, bool bin = false);
     QString *listAllQuestions();
     QString *listQuestionsByType(Question::Type type);
 private:

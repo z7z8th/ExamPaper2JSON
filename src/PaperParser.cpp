@@ -1,5 +1,5 @@
 #include <QtCore>
-#include "Paperparser.h"
+#include "PaperParser.h"
 #include "Log.h"
 #include "Question.h"
 
@@ -63,8 +63,7 @@ enum Question::Type PaperParser::parseQuesType(const QString &line, QString* &de
         printf("'%s' <-> '%s'\n", str.toUtf8().constData(), str2prs.toUtf8().constData());
         if(str.compare(str2prs) == 0) {
             type = quesTypeMap[i].type;
-            desc = new QString(line.mid(prsIdx+str.length()));
-            quesTypeMap[i].desc = desc;
+            quesTypeMap[i].desc = line.mid(prsIdx+str.length());
             //desc->append();
             break;
         }
