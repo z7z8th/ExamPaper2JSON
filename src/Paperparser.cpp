@@ -169,30 +169,37 @@ QString* PaperParser::parseAnswer(const QString &line)
     return ans;
 }
 
-int findNextChIdx(const QString &str, QChar nextCh, int curIdx) {
+int findNextChIdx(const QString &str, QChar nextCh, int from) {
     int nextIdx;
-    while((nextIdx = str.indexOf(nextCh, curIdx+2)) != -1) {
+    while((nextIdx = str.indexOf(nextCh, from)) != -1) {
         //if(nextIdx == -1)
         //    return -1;
-        if(isChSep(str.at(nextIdx+1))) {
+        int spCnt = leadingSpaceCnt(str.mid(nextIdx+1));
+        if(isChSep(str.at(nextIdx+spCnt+1))) {
             break;
         }
-        curIdx = nextIdx + 1;
+        from = nextIdx + 1;
     }
     return nextIdx;
 }
 
 bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices)
 {
-    int curIdx = 0;
+    int curIdx = leadingSpaceCnt(line);
     int nextIdx;
     int chCnt = 0;
     QString *chMain = NULL;
     while(curIdx < line.length()) {
-        if(isAnswerIdx(line.at(curIdx)) && isChSep(line.at(curIdx+1))) {
+        bool isIdx = isAnswerIdx(line.at(curIdx));
+        int idx2SepSpCnt = leadingSpaceCnt(line.mid(curIdx+1));
+        bool isSep = isChSep(line.at(curIdx+idx2SepSpCnt+1));
+        if( isIdx && isSep ) {
             QChar curCh = line.at(curIdx);
             QChar nextCh = curCh.unicode() + 1;
             nextIdx = findNextChIdx(line, nextCh, curIdx+2);
+            printf("curCh %s => %s nextIdx %d\n", QString(curCh).toUtf8().constData(),
+                   QString(nextCh).toUtf8().constData(),
+                   nextIdx);
             if(nextIdx == -1) {
                 wchar_t FWAsciiDiff = L'Ａ'-L'A';  //ＡＢＣＤＥＦＧＨ
                 if(nextCh < L'Ａ')
@@ -204,13 +211,14 @@ bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices
                     nextIdx = line.length();
                 }
             }
-
-            chMain = new QString(line.mid(curIdx+2, nextIdx-curIdx-2).trimmed());
+            curIdx += idx2SepSpCnt + 2;
+            chMain = new QString(line.mid(curIdx, nextIdx-curIdx).trimmed());
             choices.append(chMain);
             chCnt++;
             curIdx = nextIdx;
         } else {
-            curIdx++;
+            break;
+            //curIdx++;
         }
     }
     return chCnt == 0;
@@ -233,7 +241,7 @@ ExamPaper *PaperParser::parse(QString path)
     printf("0x%0x 0x%x\n", baall.at(0), baall.at(1));
     QString all(baall);
     //Log::i(TAG, QString("unichar ")+all.at(0)+all.at(1)+all.at(2));
-    printf("sizeof wchar_t %d L\'江\' %d\n", sizeof(wchar_t), sizeof(L'江'));
+    printf("sizeof wchar_t %zd L\'江\' %zd\n", sizeof(wchar_t), sizeof(L'江'));
     Log::i(TAG, all.left(3));
     if(all.at(0) == QChar(L'江')) {
         printf("equal\n");
