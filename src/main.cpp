@@ -14,4 +14,9 @@ int main(int argc, char *argv[]) {
     QString *paperStr = paper->listAllQuestions();
     printf("\n\n ----------------------------------\n\n");
     printf("%s\n", paperStr->toUtf8().constData());
+
+    QString path(argv[2]);
+    paper->save2JsonFile(path);
+
+    return false;
 }

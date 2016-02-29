@@ -8,7 +8,7 @@ class PaperParser
 {
 public:
     PaperParser();
-    enum Question::Type  parseQuesType(const QString &line);
+    enum Question::Type  parseQuesType(const QString &line, QString *&desc);
     QString* parseQuesMain(const QString & line);
     QString *findAnswerByQuot(const QString &line, wchar_t lquot, wchar_t rquot);
     QString* parseAnswer(const QString & line);

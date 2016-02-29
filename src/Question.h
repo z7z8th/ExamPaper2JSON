@@ -31,7 +31,8 @@ public:
     virtual void choose(QString * chs);
 
 public:
-    static QString * getTypeStr(Type t);
+    static QString *getTypeStr(Type t, bool en = false);
+    static QString *getTypeDesc(Type t);
 protected:
     Type type;
     QString *question;
@@ -41,11 +42,13 @@ protected:
 };
 
 struct QuesTypeMap {
-    const wchar_t *type_str;
-    Question::Type type;
+    const char *type_str_cn;
+    const Question::Type type;
+    const char *type_str_en;
+    QString *desc;
 };
 
-extern const struct QuesTypeMap quesTypeMap[3];
+extern struct QuesTypeMap quesTypeMap[3];
 extern const wchar_t chNum[];
 extern const wchar_t chSep[];
 extern const char answerIdxAsciiPattern[];

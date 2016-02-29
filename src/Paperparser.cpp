@@ -38,19 +38,13 @@ QString & trimeFWSpace(QString & str) {
     return str;
 }
 
-enum Question::Type PaperParser::parseQuesType(const QString &line)
+enum Question::Type PaperParser::parseQuesType(const QString &line, QString* &desc)
 {
-    int i=0;
     int prsIdx = 0;
     enum Question::Type type = Question::UNKNOWN_TYPE;
-    bool found = false;
-#if 0
-    for(wchar_t wc = chNum[i]; i<ARRAY_SIZE(chNum); ++i) {
-        if(paper.at(ppidx) == QChar(wc)) {
+    //bool found = false;
+    desc = NULL;
 
-        }
-    }
-#endif
     prsIdx = leadingSpaceCnt(line);
     int idxFound = QString::fromWCharArray(chNum).indexOf(line.at(prsIdx));
     prsIdx++;
@@ -58,24 +52,27 @@ enum Question::Type PaperParser::parseQuesType(const QString &line)
     int sepFound = QString::fromWCharArray(chSep).indexOf(line.at(prsIdx));
     printf("idx %d sep %d\n", idxFound, sepFound);
     if(idxFound == -1 || sepFound == -1) {
-        found = false;
+        //found = false;
         return type;
     }
     prsIdx++;
     prsIdx += leadingSpaceCnt(line.mid(prsIdx));
     for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); i++) {
-        QString str = QString::fromWCharArray(quesTypeMap[i].type_str);
+        QString str(quesTypeMap[i].type_str_cn);
         QString str2prs = line.mid(prsIdx, str.length());
         printf("'%s' <-> '%s'\n", str.toUtf8().constData(), str2prs.toUtf8().constData());
         if(str.compare(str2prs) == 0) {
             type = quesTypeMap[i].type;
+            desc = new QString(line.mid(prsIdx+str.length()));
+            quesTypeMap[i].desc = desc;
+            //desc->append();
             break;
         }
     }
 
     //if()
     printf("*** found question type %d\n", type);
-    found = true;
+    //found = true;
     return type;
 }
 
@@ -226,7 +223,8 @@ bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices
 
 QString* PaperParser::parseJudgeQMain(const QString &paper)
 {
-
+    (void)paper;
+    return NULL;
 }
 
 ExamPaper *PaperParser::parse(QString path)
@@ -251,6 +249,7 @@ ExamPaper *PaperParser::parse(QString path)
     int eolIdx;
     int lineNo = 0;
     enum Question::Type quesType;
+    QString *typeDesc = NULL;
     while(curIdx < all.length()) {
         eolIdx = all.indexOf('\n', curIdx);
         lineNo++;
@@ -263,8 +262,8 @@ ExamPaper *PaperParser::parse(QString path)
             continue;
         }
         curIdx = eolIdx + 1;
-        bool quesTypeFound = false;
-        enum Question::Type tmpQuesType = parseQuesType(line);
+        //bool quesTypeFound = false;
+        enum Question::Type tmpQuesType = parseQuesType(line, typeDesc);
         if(tmpQuesType != Question::UNKNOWN_TYPE) {
             quesType = tmpQuesType;
             continue;
@@ -287,8 +286,8 @@ ExamPaper *PaperParser::parse(QString path)
                 curIdx = eolIdx + 1;
                 continue;
             }
-            QString *choice;
-            int chIdx = -1;
+            //QString *choice;
+            //int chIdx = -1;
             allChoiceCollected = parseQuesChoice(line, choices);
             if(!allChoiceCollected)
                 curIdx = eolIdx + 1;

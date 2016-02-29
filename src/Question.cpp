@@ -34,13 +34,15 @@ QJsonObject *Question::toJsonObj() const
     QJsonObject *json = new QJsonObject;
     //QJsonValue *val = new QJsonValue(*question);
     (*json)["type"] = type;
-    (*json)["question"] = *question;
-    (*json)["answer"] = *answer;
+    (*json)["question"] = question ? *question : "";
+    (*json)["answer"] = answer ? *answer : "";
     QJsonArray chArray;
     for(int i=0; i<choices.size(); ++i){
-        chArray.append(*choices.at(i));
+        QString *ch = choices.at(i);
+        chArray.append(ch ? *ch : "");
     }
     (*json)["choices"] = chArray;
+    return json;
 }
 
 void Question::fromJsonObj(QJsonObject *json)
@@ -76,24 +78,39 @@ void Question::choose(QString *chs)
     choosed = *chs;
 }
 
-QString *Question::getTypeStr(Type t)
+QString *Question::getTypeStr(Type t, bool en)
 {
     QString *typeStr = new QString;
 #if 1
     for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); ++i) {
         if(t == quesTypeMap[i].type) {
-            typeStr->append(QString::fromWCharArray(quesTypeMap[i].type_str));
+            typeStr->append(en ? quesTypeMap[i].type_str_en : quesTypeMap[i].type_str_cn);
             break;
         }
     }
 #endif
+    printf("%s: %s\n", __func__, typeStr->toUtf8().constData());
     return typeStr;
 }
 
-const QuesTypeMap quesTypeMap[] = {
-    { L"单项选择题", Question::SINGLE_CHOICE_QUESTION },
-    { L"多项选择题", Question::MULTI_CHOICE_QUESTION },
-    { L"判断题",    Question::JUDGE_QUESTION },
+QString *Question::getTypeDesc(Type t)
+{
+    QString *typeDesc = new QString;
+#if 1
+    for(size_t i=0; i<ARRAY_SIZE(quesTypeMap); ++i) {
+        if(t == quesTypeMap[i].type) {
+            typeDesc->append(quesTypeMap[i].desc);
+            break;
+        }
+    }
+#endif
+    return typeDesc;
+}
+
+QuesTypeMap quesTypeMap[] = {
+    { "单项选择题", Question::SINGLE_CHOICE_QUESTION, "SingleChoiceQuestion", NULL },
+    { "多项选择题", Question::MULTI_CHOICE_QUESTION, "MultiChoiceQuestion", NULL },
+    { "判断题",    Question::JUDGE_QUESTION, "JudgeQuestion", NULL },
 };
 
 const wchar_t chNum[] = {
