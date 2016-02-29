@@ -12,10 +12,9 @@ int main(int argc, char *argv[]) {
     PaperParser *parser = new PaperParser;
     ExamPaper *paper = parser->parse(argv[1]);
     delete parser;
-    QString *paperStr = paper->listAllQuestions();
+    QString paperStr = paper->listAllQuestions();
     printf("\n\n ----------------------------------\n\n");
-    printf("%s\n", paperStr->toUtf8().constData());
-    delete paperStr;
+    printf("%s\n", paperStr.toUtf8().constData());
 
     QString path(argv[2]);
     paper->save2JsonFile(path);

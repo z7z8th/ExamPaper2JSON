@@ -3,8 +3,6 @@
 
 Question::Question()
 {
-    question = NULL;
-    answer = NULL;
 }
 
 Question::~Question()
@@ -15,15 +13,12 @@ Question::~Question()
 void Question::clear()
 {
     type = UNKNOWN_TYPE;
-    if(question) { delete question; question = NULL; }
-    if(answer) { delete answer; question = NULL; }
-    for(int i=0; i<choices.size(); ++i){
-        QString *ch =  choices.takeFirst();
-        delete ch;
-    }
+    question = QString();
+    answer = QString();
+    choices.clear();
 }
 
-Question::Question(Type t, QString *q, QString *a, QList<QString *> &cs)
+Question::Question(Type t, QString q, QString a, QList<QString> &cs)
 {
     type = t;
     question = q;
@@ -31,19 +26,18 @@ Question::Question(Type t, QString *q, QString *a, QList<QString *> &cs)
     choices.swap(cs);
 }
 
-QJsonObject *Question::toJsonObj() const
+QJsonObject Question::toJsonObj() const
 {
-    QJsonObject *json = new QJsonObject;
+    QJsonObject json;
     //QJsonValue *val = new QJsonValue(*question);
-    (*json)["type"] = type;
-    (*json)["question"] = question ? *question : "";
-    (*json)["answer"] = answer ? *answer : "";
+    json["type"] = type;
+    json["question"] = question;
+    json["answer"] = answer;
     QJsonArray chArray;
     for(int i=0; i<choices.size(); ++i){
-        QString *ch = choices.at(i);
-        chArray.append(ch ? *ch : "");
+        chArray.append(choices.at(i));
     }
-    (*json)["choices"] = chArray;
+    json["choices"] = chArray;
     return json;
 }
 
@@ -52,34 +46,35 @@ void Question::fromJsonObj(QJsonObject& json)
     clear();
 
     type = static_cast<Type>(json["type"].toInt());
-    question = new QString(json["question"].toString());
-    answer = new QString(json["answer"].toString());
+    question = json["question"].toString();
+    answer = json["answer"].toString();
     QJsonArray chArray = json["choices"].toArray();
     for(int i=0; i<chArray.size(); i++) {
-        QString *ch = new QString(chArray.at(i).toString());
-        choices.append(ch);
+        choices.append(chArray.at(i).toString());
     }
 }
 
-QString *Question::toString()
+QString Question::toString() const
 {
-    QString *str = new QString;
-    str->append(answer).append(" ").append(question).append("\n");
+    QString str;
+    str.append(answer).append(" ")
+            .append(question).append("\n");
     for(int i=0; i<choices.size(); i++){
-        str->append('A'+i).append(". ").append(choices.at(i)).append("\n");
+        str.append('A'+i).append(". ")
+                .append(choices.at(i)).append("\n");
     }
-    str->append("\n");
+    str.append("\n");
     return str;
 }
 
-QList<QString *> &Question::getChoices()
+const QList<QString>& Question::getChoices() const
 {
     return choices;
 }
 
-void Question::choose(QString *chs)
+void Question::choose(QString chs)
 {
-    choosed = *chs;
+    choosed = chs;
 }
 
 const QString& Question::getTypeStr(Type t, bool en)

@@ -11,17 +11,17 @@ public:
     virtual ~ExamPaper();
     void clearByType(Question::Type type);
     void clear();
-    void addQuestion(Question *q);
-    QJsonObject* toJsonObj() const;
-    QJsonObject* toJsonObjByType(Question::Type type) const;
+    void addQuestion(const Question& q);
+    QJsonObject toJsonObj() const;
+    QJsonObject toJsonObjByType(Question::Type type) const;
     void fromJsonObj(const QJsonObject& json);
     void fromJsonObjByType(const QJsonObject& json, Question::Type type);
     bool save2JsonFile(QString &path, bool bin = false);
     bool loadFromJsonFile(const QString &path, bool bin = false);
-    QString *listAllQuestions();
-    QString *listQuestionsByType(Question::Type type);
+    QString listAllQuestions();
+    QString listQuestionsByType(Question::Type type);
 private:
-    QMap<enum Question::Type, QList<Question *> > qs;
+    QMap<enum Question::Type, QList<Question> > qs;
 };
 
 #endif // EXAMPAPER_H

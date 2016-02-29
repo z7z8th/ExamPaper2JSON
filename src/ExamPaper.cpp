@@ -11,12 +11,9 @@ ExamPaper::~ExamPaper()
 
 void ExamPaper::clearByType(Question::Type type)
 {
-    QList<Question *> ql(qs.value(type));
+    QList<Question> ql(qs.value(type));
 
     printf("clearByType question list size %d\n", ql.size());
-    for(int i=0; i<ql.size(); i++){
-        delete ql.at(i);
-    }
     ql.clear();
 }
 
@@ -31,21 +28,21 @@ void ExamPaper::clear()
     qs.clear();
 }
 
-void ExamPaper::addQuestion(Question *q)
+void ExamPaper::addQuestion(const Question& q)
 {
     Question::Type type;
-    type = q->getType();
+    type = q.getType();
     if(!qs.contains(type)) {
-        QList<Question *> ql;
+        QList<Question> ql;
         qs.insert(type, ql);
     }
 
     qs[type].append(q);
 }
 
-QJsonObject *ExamPaper::toJsonObj() const
+QJsonObject ExamPaper::toJsonObj() const
 {
-    QJsonObject *json = new QJsonObject;
+    QJsonObject json;
     QList<Question::Type> tl = qs.keys();
     printf("questions keys cnt %d\n", tl.size());
     QJsonArray qsTypeArray;
@@ -53,34 +50,32 @@ QJsonObject *ExamPaper::toJsonObj() const
         Question::Type type = tl.at(i);
         qsTypeArray.append(type);
         printf("question for type %d\n", type);
-        QJsonObject *qsByType = toJsonObjByType(type);
+        QJsonObject qsByType = toJsonObjByType(type);
         QString typeStr = Question::getTypeStr(type, true);
-        (*json)[typeStr] = *qsByType;
-        delete qsByType;
+        json[typeStr] = qsByType;
     }
-    (*json)["QuestionTypes"] = qsTypeArray;
+    json["QuestionTypes"] = qsTypeArray;
     return json;
 }
 
-QJsonObject *ExamPaper::toJsonObjByType(Question::Type type) const
+QJsonObject ExamPaper::toJsonObjByType(Question::Type type) const
 {
-    QJsonObject *json = new QJsonObject;
+    QJsonObject json;
     QString str;
     str = Question::getTypeDesc(type);
-    (*json)["desc"] = str;
+    json["desc"] = str;
     str = Question::getTypeStr(type);
-    (*json)["type_str"] = str;
+    json["type_str"] = str;
     QJsonArray qsArray;
-    QList<Question *> ql(qs.value(type));
+    QList<Question> ql(qs.value(type));
 
     printf("question list size %d\n", ql.size());
     for(int i=0; i<ql.size(); i++){
-        QJsonObject *qobj = ql.at(i)->toJsonObj();
-        qsArray.append(*qobj);
-        delete qobj;
+        QJsonObject qobj = ql.at(i).toJsonObj();
+        qsArray.append(qobj);
     }
 
-    (*json)["questions"] = qsArray;
+    json["questions"] = qsArray;
 
     return json;
 }
@@ -104,8 +99,8 @@ void ExamPaper::fromJsonObjByType(const QJsonObject &json, Question::Type type)
     qsArray = json["questions"].toArray();
     for(int i=0; i<qsArray.size(); i++) {
         QJsonObject qobj = qsArray[i].toObject();
-        Question *q = new Question;
-        q->fromJsonObj(qobj);
+        Question q;
+        q.fromJsonObj(qobj);
         addQuestion(q);
     }
 }
@@ -117,10 +112,9 @@ bool ExamPaper::save2JsonFile(QString &path, bool bin)
         printf("Could not open file to save json!\n");
         return false;
     }
-    QJsonObject *paperObj = this->toJsonObj();
-    QJsonDocument doc(*paperObj);
+    QJsonObject paperObj = toJsonObj();
+    QJsonDocument doc(paperObj);
     file.write(bin?doc.toBinaryData():doc.toJson());
-    delete paperObj;
     file.close();
     return true;
 }
@@ -142,31 +136,29 @@ bool ExamPaper::loadFromJsonFile(const QString &path, bool bin)
     return true;
 }
 
-QString *ExamPaper::listAllQuestions()
+QString ExamPaper::listAllQuestions()
 {
-    QString *qsAll = new QString;
+    QString qsAll;
     QList<Question::Type> tl = qs.keys();
     printf("questions keys cnt %d\n", tl.size());
     for(int i=0; i<tl.size(); i++) {
         printf("question for type %d\n", tl.at(i));
-        QString *qsByType = listQuestionsByType(tl.at(i));
-        qsAll->append(qsByType).append("\n\n");
-        delete qsByType;
+        QString qsByType = listQuestionsByType(tl.at(i));
+        qsAll.append(qsByType).append("\n\n");
     }
     return qsAll;
 }
 
-QString *ExamPaper::listQuestionsByType(Question::Type type)
+QString ExamPaper::listQuestionsByType(Question::Type type)
 {
-    QString *qsByType = new QString;
-    QList<Question *> ql(qs.value(type));
-    qsByType->append(Question::getTypeStr(type)).append(" ")\
+    QString qsByType;
+    QList<Question> ql(qs.value(type));
+    qsByType.append(Question::getTypeStr(type)).append(" ")\
             .append(Question::getTypeDesc(type)).append("\n\n");
     printf("question list size %d\n", ql.size());
     for(int i=0; i<ql.size(); i++){
-        QString *str = ql.at(i)->toString();
-        qsByType->append(str);
-        delete str;
+        QString str = ql.at(i).toString();
+        qsByType.append(str);
     }
     return qsByType;
 }

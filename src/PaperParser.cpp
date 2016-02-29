@@ -38,12 +38,12 @@ QString & trimeFWSpace(QString & str) {
     return str;
 }
 
-enum Question::Type PaperParser::parseQuesType(const QString &line, QString* &desc)
+enum Question::Type PaperParser::parseQuesType(const QString &line, QString &desc)
 {
     int prsIdx = 0;
     enum Question::Type type = Question::UNKNOWN_TYPE;
     //bool found = false;
-    desc = NULL;
+    desc = QString();
 
     prsIdx = leadingSpaceCnt(line);
     int idxFound = QString::fromWCharArray(chNum).indexOf(line.at(prsIdx));
@@ -75,12 +75,12 @@ enum Question::Type PaperParser::parseQuesType(const QString &line, QString* &de
     return type;
 }
 
-QString* PaperParser::parseQuesMain(const QString &line)
+QString PaperParser::parseQuesMain(const QString &line)
 {
     bool ok;
     int qidx;
     QChar sep;
-    QString *mainq = NULL;
+    QString qmain;
 
     int id=0;
     while(L'0' <= line.at(id) && line.at(id) <= L'9')
@@ -89,18 +89,18 @@ QString* PaperParser::parseQuesMain(const QString &line)
     qidx = line.mid(0, id).toUInt(&ok, 10);
     if(not ok) {
         printf("QuesMain toUInt not ok\n");
-        return mainq;
+        return qmain;
     }
     printf("QuesMain qidx %d sepid %d\n", qidx, id);
 
     int sepFound = QString::fromWCharArray(chSep).indexOf(line.at(id));
     if(sepFound == -1)
-        return mainq;
+        return qmain;
     id++;
-    mainq = new QString(line.mid(id));
+    qmain = line.mid(id);
 
-    printf("QuesMain qidx %d qmain %s\n", qidx, mainq->toUtf8().constData());
-    return mainq;
+    printf("QuesMain qidx %d qmain %s\n", qidx, qmain.toUtf8().constData());
+    return qmain;
 }
 
 bool isAnswerIdx(const QString &ansPart) {
@@ -123,11 +123,11 @@ bool isChSep(const QString &str) {
 
 }
 
-QString* PaperParser::findAnswerByQuot(QString &line, wchar_t lquot, wchar_t rquot)
+QString PaperParser::findAnswerByQuot(QString &line, wchar_t lquot, wchar_t rquot)
 {
     int lqIdx = 0;
     int rqIdx = 0;
-    QString *ans = NULL;
+    QString ans;
     QString ansPart;
     while((lqIdx = line.indexOf(lquot, lqIdx)) != -1) {
         rqIdx = line.indexOf(rquot, lqIdx+1);
@@ -142,7 +142,7 @@ QString* PaperParser::findAnswerByQuot(QString &line, wchar_t lquot, wchar_t rqu
             lqIdx = rqIdx + 1;
             continue;
         }
-        ans = new QString(ansPart);
+        ans = ansPart;
 #ifndef KEEP_ANSWER_FROM_QUESTION
         const QString sp("  ");
         line.replace(lqIdx+1, rqIdx-lqIdx-1, sp);
@@ -151,18 +151,18 @@ QString* PaperParser::findAnswerByQuot(QString &line, wchar_t lquot, wchar_t rqu
         lqIdx = rqIdx + 1;
         break;
     }
-    if(ans)
-        FWAnswer2Ascii(*ans);
-    printf(">> Answer: %s\n", ans ? ans->toUtf8().constData():"Not Found!");
+    if(not ans.isEmpty())
+        FWAnswer2Ascii(ans);
+    printf(">> Answer: %s\n", ans.toUtf8().constData());
 
     return ans;
 }
 
-QString* PaperParser::parseAnswer(QString &line)
+QString PaperParser::parseAnswer(QString &line)
 {
-    QString *ans;
+    QString ans;
     ans = findAnswerByQuot(line, lquotFW, rquotFW);
-    if(!ans)
+    if(ans.isEmpty())
         ans = findAnswerByQuot(line, lquotAscii, rquotAscii);
 
 
@@ -183,12 +183,12 @@ int findNextChIdx(const QString &str, QChar nextCh, int from) {
     return nextIdx;
 }
 
-bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices)
+bool PaperParser::parseQuesChoice(const QString &line, QList<QString> &choices)
 {
     int curIdx = leadingSpaceCnt(line);
     int nextIdx;
     int chCnt = 0;
-    QString *chMain = NULL;
+    QString chMain;
     while(curIdx < line.length()) {
         bool isIdx = isAnswerIdx(line.at(curIdx));
         int idx2SepSpCnt = leadingSpaceCnt(line.mid(curIdx+1));
@@ -212,7 +212,7 @@ bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices
                 }
             }
             curIdx += idx2SepSpCnt + 2;
-            chMain = new QString(line.mid(curIdx, nextIdx-curIdx).trimmed());
+            chMain = line.mid(curIdx, nextIdx-curIdx).trimmed();
             choices.append(chMain);
             chCnt++;
             curIdx = nextIdx;
@@ -224,7 +224,7 @@ bool PaperParser::parseQuesChoice(const QString &line, QList<QString *> &choices
     return chCnt == 0;
 }
 
-QString* PaperParser::parseJudgeQMain(const QString &paper)
+QString PaperParser::parseJudgeQMain(const QString &paper)
 {
     (void)paper;
     return NULL;
@@ -252,7 +252,7 @@ ExamPaper *PaperParser::parse(QString path)
     int eolIdx;
     int lineNo = 0;
     enum Question::Type quesType;
-    QString *typeDesc = NULL;
+    QString typeDesc = NULL;
     while(curIdx < all.length()) {
         eolIdx = all.indexOf('\n', curIdx);
         lineNo++;
@@ -271,11 +271,11 @@ ExamPaper *PaperParser::parse(QString path)
             quesType = tmpQuesType;
             continue;
         }
-        QString *qmain = parseQuesMain(line);
-        if(qmain == NULL)
+        QString qmain = parseQuesMain(line);
+        if(qmain.isEmpty())
             continue;
-        QString *answers = parseAnswer(*qmain);
-        QList <QString *> choices;
+        QString answers = parseAnswer(qmain);
+        QList <QString> choices;
         bool allChoiceCollected = false;
 
         while(!allChoiceCollected && curIdx < all.length()) {
@@ -297,10 +297,10 @@ ExamPaper *PaperParser::parse(QString path)
         }
 
         for(int i = 0; i<choices.size(); ++i ) {
-            QString * ch = choices.at(i);
-            printf("[%d] %s\n", i, ch->toUtf8().constData());
+            QString ch = choices.at(i);
+            printf("[%d] %s\n", i, ch.toUtf8().constData());
         }
-        Question *q = new Question(quesType, qmain, answers, choices);
+        Question q(quesType, qmain, answers, choices);
         paper->addQuestion(q);
         printf("====\n");
     }

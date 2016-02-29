@@ -16,28 +16,28 @@ public:
     Question();
     virtual ~Question();
     void clear();
-    Question(Type t, QString *q, QString *a, QList<QString *> &cs);
-    QJsonObject *toJsonObj() const;
+    Question(Type t, QString q, QString a, QList<QString> &cs);
+    QJsonObject toJsonObj() const;
     void fromJsonObj(QJsonObject& json);
-    QString* toString();
+    QString toString() const;
 #if 0
-    void setMain(QString *main);
-    void setChoice(int index, QString *choice);
-    void addChoice(QString *choice);
-    void setAnswer(QString *ans);
+    void setMain(QString main);
+    void setChoice(int index, QString choice);
+    void addChoice(QString choice);
+    void setAnswer(QString ans);
 #endif
-    QList<QString *> & getChoices();
-    Type getType() { return type; }
-    virtual void choose(QString * chs);
+    const QList<QString> & getChoices() const;
+    Type getType() const { return type; }
+    virtual void choose(QString chs);
 
 public:
     static const QString& getTypeStr(Type t, bool en = false);
     static const QString& getTypeDesc(Type t);
 protected:
     Type type;
-    QString *question;
-    QString *answer;
-    QList<QString *> choices;
+    QString question;
+    QString answer;
+    QList<QString> choices;
     QString choosed;
 };
 
