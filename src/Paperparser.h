@@ -10,8 +10,8 @@ public:
     PaperParser();
     enum Question::Type  parseQuesType(const QString &line, QString *&desc);
     QString* parseQuesMain(const QString & line);
-    QString *findAnswerByQuot(const QString &line, wchar_t lquot, wchar_t rquot);
-    QString* parseAnswer(const QString & line);
+    QString *findAnswerByQuot(QString &line, wchar_t lquot, wchar_t rquot);
+    QString* parseAnswer(QString & line);
     bool parseQuesChoice(const QString & line, QList<QString *> & choices);
     QString* parseJudgeQMain(const QString & paper);
     ExamPaper * parse(QString path);

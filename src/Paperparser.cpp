@@ -124,7 +124,7 @@ bool isChSep(const QString &str) {
 
 }
 
-QString* PaperParser::findAnswerByQuot(const QString &line, wchar_t lquot, wchar_t rquot)
+QString* PaperParser::findAnswerByQuot(QString &line, wchar_t lquot, wchar_t rquot)
 {
     int lqIdx = 0;
     int rqIdx = 0;
@@ -144,6 +144,10 @@ QString* PaperParser::findAnswerByQuot(const QString &line, wchar_t lquot, wchar
             continue;
         }
         ans = new QString(ansPart);
+#ifndef KEEP_ANSWER_FROM_QUESTION
+        const QString sp("  ");
+        line.replace(lqIdx+1, rqIdx-lqIdx-1, sp);
+#endif
         //ans->append(ansPart);
         lqIdx = rqIdx + 1;
         break;
@@ -155,7 +159,7 @@ QString* PaperParser::findAnswerByQuot(const QString &line, wchar_t lquot, wchar
     return ans;
 }
 
-QString* PaperParser::parseAnswer(const QString &line)
+QString* PaperParser::parseAnswer(QString &line)
 {
     QString *ans;
     ans = findAnswerByQuot(line, lquotFW, rquotFW);
