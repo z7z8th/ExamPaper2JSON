@@ -230,13 +230,15 @@ QString PaperParser::parseJudgeQMain(const QString &paper)
     return NULL;
 }
 
-ExamPaper *PaperParser::parse(QString path)
+ExamPaper PaperParser::parse(QString path)
 {
+    ExamPaper paper;
+
     QString cat("parse");
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly)) {
         Log::i(TAG, "open " + path + " for parse failed!");
-        return NULL;
+        return paper;
     }
     QByteArray baall = file.readAll();
     printf("0x%0x 0x%x\n", baall.at(0), baall.at(1));
@@ -247,7 +249,6 @@ ExamPaper *PaperParser::parse(QString path)
     if(all.at(0) == QChar(L'江')) {
         printf("equal\n");
     }
-    ExamPaper *paper = new ExamPaper();
     int curIdx = 0;
     int eolIdx;
     int lineNo = 0;
@@ -301,7 +302,7 @@ ExamPaper *PaperParser::parse(QString path)
             printf("[%d] %s\n", i, ch.toUtf8().constData());
         }
         Question q(quesType, qmain, answers, choices);
-        paper->addQuestion(q);
+        paper.addQuestion(q);
         printf("====\n");
     }
     return paper;

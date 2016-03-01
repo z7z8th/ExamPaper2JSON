@@ -14,7 +14,7 @@ public:
     QString parseAnswer(QString & line);
     bool parseQuesChoice(const QString & line, QList<QString> & choices);
     QString parseJudgeQMain(const QString & paper);
-    ExamPaper * parse(QString path);
+    ExamPaper parse(QString path);
 protected:
 private:
     static const QString TAG;

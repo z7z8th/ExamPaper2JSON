@@ -9,21 +9,19 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    PaperParser *parser = new PaperParser;
-    ExamPaper *paper = parser->parse(argv[1]);
-    delete parser;
-    QString paperStr = paper->listAllQuestions();
+    PaperParser parser;
+    ExamPaper paper = parser.parse(argv[1]);
+    QString paperStr = paper.listAllQuestions();
     printf("\n\n ----------------------------------\n\n");
     printf("%s\n", paperStr.toUtf8().constData());
 
     QString path(argv[2]);
-    paper->save2JsonFile(path);
+    paper.save2JsonFile(path);
 
-    delete paper;
-    paper = new ExamPaper;
-    paper->loadFromJsonFile(path);
+    paper.clear();
+    paper.loadFromJsonFile(path);
     QString path3(argv[3]);
-    paper->save2JsonFile(path3);
-    delete paper;
+    paper.save2JsonFile(path3);
+
     return false;
 }
